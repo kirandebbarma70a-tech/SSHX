@@ -1,23 +1,25 @@
-# Ubuntu 20.04 बेस इमेज
+# Ubuntu 20.04 को बेस इमेज के तौर पर इस्तेमाल करें
 FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# ज़रूरी पैकेज इंस्टॉल करें (shellinabox, tmux और अन्य टूल्स)
+# ज़रूरी पैकेज इंस्टॉल करें
 RUN apt-get update && \
-    apt-get install -y shellinabox tmux curl wget python3 python3-pip && \
+    apt-get install -y tmux curl wget python3 python3-pip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Gotty डाउनलोड करें (मोबाइल वर्चुअल कीबोर्ड और एंटर की के लिए सबसे बेस्ट)
+RUN wget https://github.com/yudai/gotty/releases/download/v1.0.1/gotty_linux_amd64.tar.gz && \
+    tar -xzf gotty_linux_amd64.tar.gz && \
+    mv gotty /usr/local/bin/ && \
+    rm gotty_linux_amd64.tar.gz
+
 EXPOSE 4200
 
-# स्टार्टअप स्क्रिप्ट: यह आपके बैकग्राउंड कोड को भी चलाएगा और 
-# shellinabox को बिना किसी लॉगिन/पासवर्ड प्रॉम्प्ट के सीधे डायरेक्ट Bash टर्मिनल पर सेट कर देगा
+# स्टार्टअप स्क्रिप्ट: बैकग्राउंड टास्क + Gotty टर्मिनल
 RUN echo '#!/bin/bash\n\
-# यहाँ आपका मुख्य बैकग्राउंड टास्क चलेगा (आप चाहें तो अपनी स्क्रिप्ट यहाँ लगा सकते हैं)\n\
 tmux new-session -d -s my_running_code "while true; do echo \"Background task running...\"; sleep 10; done"\n\
-\n\
-# shellinabox को बिना लॉगिन के सीधे root का bash शेल खोलने के लिए कॉन्फ़िगर करें\n\
-exec /usr/bin/shellinaboxd -t -s "/:root:root:/:/bin/bash"\n' > /start.sh && chmod +x /start.sh
+exec gotty -w --port 4200 bash\n' > /start.sh && chmod +x /start.sh
 
 CMD ["/start.sh"]
